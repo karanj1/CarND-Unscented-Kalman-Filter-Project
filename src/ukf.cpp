@@ -51,6 +51,33 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  // initially set to false, set to true in first call of ProcessMeasurement
+  is_initialized_ = false;
+
+  // time when the state is true, in microseconds
+  time_us_ = 0.0;
+
+  // state dimension
+  n_x_ = 5;
+
+  // Augmented state dimension
+  n_aug_ = 7;
+
+  // Sigma point spreading parameter
+  lambda_ = 3 - n_x_;
+
+  // predicted sigma points matrix
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+
+  //create vector for weights
+  weights_ = VectorXd(2 * n_aug_ + 1);
+
+  // the current NIS for radar
+  NIS_radar_ = 0.0;
+
+  // the current NIS for laser
+  NIS_laser_ = 0.0;
 }
 
 UKF::~UKF() {}
@@ -66,6 +93,65 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+
+  // skip predict/update if sensor type is ignored
+  if ((meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) ||
+      (meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_)) {
+
+    if (!is_initialized_){
+      // Initiallize state x, Covariance matrix P
+
+      //first measurement
+      x_ << 1,1,1,1,0.1;
+
+      // init covariance matrix
+      P_ << 0.15,    0, 0, 0, 0,
+               0, 0.15, 0, 0, 0,
+               0,    0, 1, 0, 0,
+               0,    0, 0, 1, 0,
+               0,    0, 0, 0, 1;
+
+      if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
+      /**
+      Convert radar from polar to cartesian coordinates and initialize state.
+      */
+      float rho     = measurement_pack.raw_measurements_(0);
+      float phi    = measurement_pack.raw_measurements_(1);
+      float rhodot = measurement_pack.raw_measurements_(2);
+      x_(0) = rho     * cos(phi);
+      x_(1) = rho     * sin(phi);      
+      }
+      else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER && use_laser_) {
+      /**
+      Initialize state.
+      */
+      x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measurements_(1);
+      }
+
+      //std::cout <<"x: "<< ekf_.x_ <<endl;
+
+      time_us_ = measurement_pack.timestamp_;
+      // done initializing, no need to predict or update
+      is_initialized_ = true;
+      return;
+    }
+
+    /*** Predict ***/
+    //compute the time elapsed between the current and previous measurements
+    float dt = (measurement_pack.timestamp_ - time_us_) / 1000000.0; //dt - expressed in seconds
+    time_us_ = measurement_pack.timestamp_;
+    
+    Prediction(dt);
+  
+    /*** update ***/
+    if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+        UpdateLidar(meas_package);
+    }
+    else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+        UpdateRadar(meas_package);
+    }
+
+  }
 }
 
 /**
