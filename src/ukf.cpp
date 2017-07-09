@@ -111,26 +111,26 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
                0,    0, 0, 1, 0,
                0,    0, 0, 0, 1;
 
-      if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
+      if (meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
-      float rho     = measurement_pack.raw_measurements_(0);
-      float phi    = measurement_pack.raw_measurements_(1);
-      float rhodot = measurement_pack.raw_measurements_(2);
+      float rho     = meas_package.raw_measurements_(0);
+      float phi    = meas_package.raw_measurements_(1);
+      float rhodot = meas_package.raw_measurements_(2);
       x_(0) = rho     * cos(phi);
       x_(1) = rho     * sin(phi);      
       }
-      else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER && use_laser_) {
+      else if (meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_) {
       /**
       Initialize state.
       */
-      x_ << measurement_pack.raw_measurements_(0), measurement_pack.raw_measurements_(1);
+      x_ << meas_package.raw_measurements_(0), meas_package.raw_measurements_(1);
       }
 
       //std::cout <<"x: "<< ekf_.x_ <<endl;
 
-      time_us_ = measurement_pack.timestamp_;
+      time_us_ = meas_package.timestamp_;
       // done initializing, no need to predict or update
       is_initialized_ = true;
       return;
@@ -138,8 +138,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
     /*** Predict ***/
     //compute the time elapsed between the current and previous measurements
-    float dt = (measurement_pack.timestamp_ - time_us_) / 1000000.0; //dt - expressed in seconds
-    time_us_ = measurement_pack.timestamp_;
+    float dt = (meas_package.timestamp_ - time_us_) / 1000000.0; //dt - expressed in seconds
+    time_us_ = meas_package.timestamp_;
     
     Prediction(dt);
   
