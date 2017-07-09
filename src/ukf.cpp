@@ -431,7 +431,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     double v   = Xsig_pred_(2, i);
     double yaw = Xsig_pred_(3, i);
 
-    double v1 = cos(yaw)*v;  //from lesson 4
+    double v1 = cos(yaw)*v;  //from lesson 42
     double v2 = sin(yaw)*v;
 
     // measurement model //same as Extended Kalman Filter
